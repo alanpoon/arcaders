@@ -5,29 +5,11 @@ use std::thread;
 use std::time::Duration;
 
 #[macro_use]
-mod events;
-struct_events![
-    keyboard: {
-        key_escape: Escape,
-        key_up: Up,
-        key_down: Down
-    },
-    else: {
-        quit: Quit { .. }
-    }
-]
-pub enum ViewAction {
-    None,
-    Quit,
-}
+mod phi;
+mod views;
+use phi::Events;
 
-pub trait View {
-    /// Called on every frame to take care of both the logic and
-    /// the rendering of the current view.
-    ///
-    /// `elapsed` is expressed in seconds.
-    fn render(&mut self, context: &mut Phi, elapsed: f64) -> ViewAction;
-}
+
 fn main() {
     // Initialize SDL2
     let mut sdl_context = sdl2::init().unwrap();
