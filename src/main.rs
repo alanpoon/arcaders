@@ -11,6 +11,6 @@ mod views;
 
 fn main() {
     // Initialize SDL2
-    ::phi::spawn("ArcadeRS Shooter", |_| Box::new(views::DefaultView));
+    ::phi::spawn("ArcadeRS Shooter", |_| Box::new(views::ViewA));
 
 }
