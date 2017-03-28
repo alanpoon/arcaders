@@ -1,13 +1,12 @@
 extern crate sdl2;
 
 use sdl2::pixels::Color;
-use std::thread;
-use std::time::Duration;
+
 
 #[macro_use]
 mod phi;
 mod views;
-use phi::Events;
+use phi::{Events, Phi,View,ViewAction};
 
 
 fn main() {
@@ -21,24 +20,24 @@ fn main() {
         .opengl()
         .build()
         .unwrap();
-
-    let mut renderer = window.renderer()
-        .accelerated()
-        .build()
-        .unwrap();
-
+    // Create Phi Context
+    let mut context = Phi {
+        events: Events::new(sdl_context.event_pump().unwrap()),
+        renderer: window.renderer()
+            .accelerated()
+            .build()
+            .unwrap(),
+    };
+    //create default view using a box
+    let mut current_view:Box<View> = Box::new(views::DefaultView);
     // Prepare the events record
-    let mut events = Events::new(sdl_context.event_pump().unwrap());
-    loop {
-        events.pump();
-        if events.now.quit || events.now.key_escape == Some(true) {
-            break;
-        }
 
-        // Render a fully black window
-        renderer.set_draw_color(Color::RGB(0, 0, 0));
-        renderer.clear();
-        renderer.present();
+    loop {
+        context.events.pump();
+        match current_view.render(&mut context,0.01){
+            ViewAction::None=>context.renderer.present(),
+            ViewAction::Quit=>break,
+        }
     }
 
 

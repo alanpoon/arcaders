@@ -13,7 +13,7 @@ struct_events! [
     else: {
         quit: Quit { .. }
     }
-]
+];
 pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
