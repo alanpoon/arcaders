@@ -20,6 +20,30 @@ impl Rectangle {
         assert!(self.w >= 0.0 && self.h >= 0.0);
         Some(SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32))
     }
+    pub fn move_inside(self, parent: Rectangle) -> Option<Rectangle> {
+        if self.w > parent.w || self.h > parent.h {
+            return None;
+        }
+        Some(Rectangle {
+                 w: self.w,
+                 h: self.h,
+                 x: if self.x < parent.x {
+                     parent.x
+                 } else if self.x + self.w >= parent.x + parent.w {
+            parent.x + parent.w - self.w
+        } else {
+            self.x
+        },
+                 y: if self.y < parent.y {
+                     parent.y
+                 } else if self.y + self.h >= parent.y + parent.h {
+            parent.y + parent.h - self.h
+        } else {
+            self.y
+        },
+             })
+
+    }
 }
 struct Ship {
     rect: Rectangle,
@@ -70,8 +94,17 @@ impl View for ShipView {
 
         // Render the scene
         phi.renderer.set_draw_color(Color::RGB(200, 200, 50));
+        let movable_region = Rectangle {
+            x: 0.0,
+            y: 0.0,
+            w: phi.output_size().0 * 0.70,
+            h: phi.output_size().1,
+        };
+
         phi.renderer.fill_rect(self.player
                                    .rect
+                                   .move_inside(movable_region)
+                                   .unwrap()
                                    .to_sdl()
                                    .unwrap());
 

@@ -21,6 +21,12 @@ pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
 }
+impl<'window> Phi<'window> {
+    pub fn output_size(&self) -> (f64, f64) {
+        let (w, h) = self.renderer.output_size().unwrap();
+        (w as f64, h as f64)
+    }
+}
 
 
 pub enum ViewAction {
@@ -49,6 +55,7 @@ pub fn spawn<F>(title: &str, init: F)
     let window = video.window(title, 800, 600)
         .position_centered()
         .opengl()
+        .resizable()
         .build()
         .unwrap();
     // Create Phi Context
@@ -85,7 +92,7 @@ pub fn spawn<F>(title: &str, init: F)
             fps = 0;
         }
 
-        context.events.pump();
+        context.events.pump(&mut context.renderer);
         match current_view.render(&mut context, elapsed) {
             ViewAction::None => context.renderer.present(),
             ViewAction::Quit => break,
