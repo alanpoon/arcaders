@@ -17,8 +17,7 @@ impl Rectangle {
         assert!(self.w >= 0.0 && self.h >= 0.0);
 
         // SdlRect::new : `(i32, i32, u32, u32) -> Result<Option<SdlRect>>`
-        Some(SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32)
-            )
+        Some(SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32))
     }
 
     /// Returns a (perhaps moved) rectangle which is contained by a `parent`
@@ -31,14 +30,22 @@ impl Rectangle {
         }
 
         Some(Rectangle {
-            w: self.w,
-            h: self.h,
-            x: if self.x < parent.x { parent.x }
-               else if self.x + self.w >= parent.x + parent.w { parent.x + parent.w - self.w }
-               else { self.x },
-            y: if self.y < parent.y { parent.y }
-               else if self.y + self.h >= parent.y + parent.h { parent.y + parent.h - self.h }
-               else { self.y },
-        })
+                 w: self.w,
+                 h: self.h,
+                 x: if self.x < parent.x {
+                     parent.x
+                 } else if self.x + self.w >= parent.x + parent.w {
+            parent.x + parent.w - self.w
+        } else {
+            self.x
+        },
+                 y: if self.y < parent.y {
+                     parent.y
+                 } else if self.y + self.h >= parent.y + parent.h {
+            parent.y + parent.h - self.h
+        } else {
+            self.y
+        },
+             })
     }
 }
