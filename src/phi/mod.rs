@@ -1,6 +1,6 @@
 #[macro_use]
 mod events;
-
+pub mod data;
 use sdl2::render::Renderer;
 
 
