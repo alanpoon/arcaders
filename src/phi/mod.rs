@@ -4,7 +4,7 @@ mod events;
 use sdl2::render::Renderer;
 
 
-struct_events! [
+struct_events! {
     keyboard: {
         key_escape: Escape,
         key_up: Up,
@@ -16,7 +16,7 @@ struct_events! [
     else: {
         quit: Quit { .. }
     }
-];
+}
 pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
