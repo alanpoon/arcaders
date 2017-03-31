@@ -22,8 +22,8 @@ impl Sprite {
             src: self.src.clone(),
         }
     }
-    pub fn load(renderer: &Renderer, path: &str) {
-        renderer.load_texture(Path::new(path)).ok().map(Sprite::new);
+    pub fn load(renderer: &Renderer, path: &str) -> Option<Sprite> {
+        renderer.load_texture(Path::new(path)).ok().map(Sprite::new)
     }
     pub fn new(texture: Texture) -> Sprite {
         let tex_query = texture.query();

@@ -1,22 +1,24 @@
 use phi::{Phi, View, ViewAction};
 use sdl2::pixels::Color;
 use phi::data::Rectangle;
+use phi::gfx::Sprite;
 use std::path::Path;
 use sdl2::render::{Texture, TextureQuery};
 use sdl2::image::LoadTexture;
+
 // Constants
 const PLAYER_SPEED: f64 = 180.0;
 
 struct Ship {
     rect: Rectangle,
-    tex: Texture,
+    sprite: Sprite,
 }
 pub struct ShipView {
     player: Ship,
 }
 impl ShipView {
     pub fn new(phi: &mut Phi) -> ShipView {
-        let tex = phi.renderer.load_texture(Path::new("assets/spaceship.png")).unwrap();
+        let sprite = Sprite::load(&mut phi.renderer, "assets/spaceship.png").unwrap();
         ShipView {
             player: Ship {
                 rect: Rectangle {
@@ -25,7 +27,7 @@ impl ShipView {
                     w: 32.0,
                     h: 32.0,
                 },
-                tex: tex,
+                sprite: sprite,
             },
         }
     }
@@ -65,26 +67,11 @@ impl View for ShipView {
             w: phi.output_size().0 * 0.70,
             h: phi.output_size().1,
         };
-
-        phi.renderer.fill_rect(self.player
-                                   .rect
-                                   .move_inside(movable_region)
-                                   .unwrap()
-                                   .to_sdl()
-                                   .unwrap());
-        phi.renderer.copy(&mut self.player.tex,
-                          Rectangle {
-                                  x: 0.0,
-                                  y: 0.0,
-                                  w: self.player.rect.w,
-                                  h: self.player.rect.h,
-                              }
-                              .to_sdl(),
-                          self.player
-                              .rect
-                              .move_inside(movable_region)
-                              .unwrap()
-                              .to_sdl());
+        self.player.rect = self.player
+            .rect
+            .move_inside(movable_region)
+            .unwrap();
+        self.player.sprite.render(&mut phi.renderer, self.player.rect);
         ViewAction::None
     }
 }
