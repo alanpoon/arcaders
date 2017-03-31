@@ -19,10 +19,25 @@ impl Rectangle {
         // SdlRect::new : `(i32, i32, u32, u32) -> Result<Option<SdlRect>>`
         Some(SdlRect::new(self.x as i32, self.y as i32, self.w as u32, self.h as u32))
     }
+    
+    pub fn contains(&self, rect: Rectangle) -> bool {
+        let xmin = rect.x;
+        let xmax = xmin + rect.w;
+        let ymin = rect.y;
+        let ymax = ymin + rect.h;
 
-    /// Returns a (perhaps moved) rectangle which is contained by a `parent`
-    /// rectangle. If it can indeed be moved to fit, return `Some(result)`;
-    /// otherwise, return `None`.
+        xmin >= self.x && xmin <= self.x + self.w &&
+        xmax >= self.x && xmax <= self.x + self.w &&
+        ymin >= self.y && ymin <= self.y + self.h &&
+        ymax >= self.y && ymax <= self.y + self.h
+    }
+
+    pub fn overlaps(&self, other: Rectangle) -> bool {
+        self.x < other.x + other.w &&
+        self.x + self.w > other.x &&
+        self.y < other.y + other.h &&
+        self.y + self.h > other.y
+}
     pub fn move_inside(self, parent: Rectangle) -> Option<Rectangle> {
         // It must be smaller than the parent rectangle to fit in it.
         if self.w > parent.w || self.h > parent.h {
