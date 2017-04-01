@@ -1,11 +1,11 @@
 use phi::{Phi, View, ViewAction};
-use sdl2::pixels::Color;
+use phi::gfx::{CopySprite, Sprite};
 use phi::data::Rectangle;
-use phi::gfx::Sprite;
 use std::path::Path;
 use sdl2::render::{Texture, TextureQuery};
 use sdl2::image::LoadTexture;
 
+use sdl2::pixels::Color;
 // Constants
 const PLAYER_SPEED: f64 = 180.0;
 const SHIP_W: f64 = 43.0;
@@ -120,9 +120,8 @@ impl View for ShipView {
             unreachable!()
         };
 
-
-        self.player.sprites[self.player.current as usize].render(&mut phi.renderer,
-                                                                 self.player.rect);
+        phi.renderer.copy_sprite(& self.player.sprites[self.player.current as usize],
+                                 self.player.rect);
         ViewAction::None
     }
 }

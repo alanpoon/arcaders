@@ -62,3 +62,12 @@ impl Sprite {
         renderer.copy(&mut self.tex.borrow_mut(), self.src.to_sdl(), dest.to_sdl());
     }
 }
+pub trait CopySprite {
+    fn copy_sprite(&mut self, sprite: &Sprite, dest: Rectangle);
+}
+
+impl<'window> CopySprite for Renderer<'window> {
+    fn copy_sprite(&mut self, sprite: &Sprite, dest: Rectangle) {
+        sprite.render(self, dest);
+    }
+}
