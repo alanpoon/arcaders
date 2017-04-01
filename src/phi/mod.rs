@@ -2,8 +2,12 @@
 mod events;
 pub mod data;
 pub mod gfx;
+use self::gfx::Sprite;
 use sdl2::render::Renderer;
-
+use sdl2::pixels::Color;
+use std::collections::HashMap;
+use std::path::Path;
+use sdl2::ttf::Sdl2TtfContext;
 struct_events! {
     keyboard: {
         key_escape: Escape,
@@ -20,17 +24,36 @@ struct_events! {
 pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
+    ttf_context:Sdl2TtfContext,
 }
 impl<'window> Phi<'window> {
     fn new(events: Events, renderer: Renderer<'window>) -> Phi<'window> {
         Phi {
             events: events,
             renderer: renderer,
+            ttf_context: ::sdl2::ttf::init().unwrap(),
         }
     }
     pub fn output_size(&self) -> (f64, f64) {
         let (w, h) = self.renderer.output_size().unwrap();
         (w as f64, h as f64)
+    }
+    pub fn ttf_str_sprite(&mut self,
+                          text: &str,
+                          font_path: &'static str,
+                          size: u16,
+                          color: Color)->Option<Sprite> {
+        self.ttf_context.load_font(Path::new(font_path), size).ok()
+            //? We must wrap the next steps in a closure because borrow checker.
+            //? More precisely, `font` must live at least until the texture is
+            //? created.
+            .and_then(|font| font
+                //? If this worked, we try to create a surface from the font.
+                .render(text).blended(color).ok()
+                //? If this worked, we try to make this surface into a texture.
+                .and_then(|surface| self.renderer.create_texture_from_surface(&surface).ok())
+                //? If this worked, we load
+                .map(Sprite::new))
     }
 }
 

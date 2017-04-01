@@ -1,4 +1,3 @@
-macro_rules! expr { ($x:expr) => ($x) }
 macro_rules! struct_events {
     (
         keyboard: { $( $k_alias:ident : $k_sdl:ident ),* },
