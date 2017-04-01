@@ -98,20 +98,31 @@ impl View for ShipView {
             .rect
             .move_inside(movable_region)
             .unwrap();
-        self.player.current =
-    if dx == 0.0 && dy < 0.0       { ShipFrame::UpNorm }
-    else if dx > 0.0 && dy < 0.0   { ShipFrame::UpFast }
-    else if dx < 0.0 && dy < 0.0   { ShipFrame::UpSlow }
-    else if dx == 0.0 && dy == 0.0 { ShipFrame::MidNorm }
-    else if dx > 0.0 && dy == 0.0  { ShipFrame::MidFast }
-    else if dx < 0.0 && dy == 0.0  { ShipFrame::MidSlow }
-    else if dx == 0.0 && dy > 0.0  { ShipFrame::DownNorm }
-    else if dx > 0.0 && dy > 0.0   { ShipFrame::DownFast }
-    else if dx < 0.0 && dy > 0.0   { ShipFrame::DownSlow }
-    else { unreachable!() };
+        self.player.current = if dx == 0.0 && dy < 0.0 {
+            ShipFrame::UpNorm
+        } else if dx > 0.0 && dy < 0.0 {
+            ShipFrame::UpFast
+        } else if dx < 0.0 && dy < 0.0 {
+            ShipFrame::UpSlow
+        } else if dx == 0.0 && dy == 0.0 {
+            ShipFrame::MidNorm
+        } else if dx > 0.0 && dy == 0.0 {
+            ShipFrame::MidFast
+        } else if dx < 0.0 && dy == 0.0 {
+            ShipFrame::MidSlow
+        } else if dx == 0.0 && dy > 0.0 {
+            ShipFrame::DownNorm
+        } else if dx > 0.0 && dy > 0.0 {
+            ShipFrame::DownFast
+        } else if dx < 0.0 && dy > 0.0 {
+            ShipFrame::DownSlow
+        } else {
+            unreachable!()
+        };
 
 
-        self.player.sprites[self.player.current as usize].render(&mut phi.renderer, self.player.rect);
+        self.player.sprites[self.player.current as usize].render(&mut phi.renderer,
+                                                                 self.player.rect);
         ViewAction::None
     }
 }
