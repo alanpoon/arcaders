@@ -1,8 +1,5 @@
 extern crate sdl2;
 
-use sdl2::pixels::Color;
-
-
 #[macro_use]
 mod phi;
 mod views;
@@ -11,9 +8,10 @@ mod views;
 
 fn main() {
     // Initialize SDL2
-  /*  ::phi::spawn("ArcadeRS Shooter",
-                 |phi| Box::new(views::ShipView::new(phi)));
-                 */
     ::phi::spawn("ArcadeRS Shooter",
-                 |phi| Box::new(::views::main_menu::MainMenuView::new(phi)));
+                 |phi| Box::new(views::game::ShipView::new(phi)));
+                 
+  /*  ::phi::spawn("ArcadeRS Shooter",
+                 |phi| Box::new(views::main_menu::MainMenuView::new(phi)));
+                 */
 }
