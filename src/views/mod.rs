@@ -8,17 +8,43 @@ use sdl2::image::LoadTexture;
 
 // Constants
 const PLAYER_SPEED: f64 = 180.0;
-
+const SHIP_W: f64 = 43.0;
+const SHIP_H: f64 = 39.0;
+#[derive(Clone, Copy)]
+enum ShipFrame {
+    UpNorm = 0,
+    UpFast = 1,
+    UpSlow = 2,
+    MidNorm = 3,
+    MidFast = 4,
+    MidSlow = 5,
+    DownNorm = 6,
+    DownFast = 7,
+    DownSlow = 8,
+}
 struct Ship {
     rect: Rectangle,
-    sprite: Sprite,
+    sprites: Vec<Sprite>,
+    current: ShipFrame,
 }
 pub struct ShipView {
     player: Ship,
 }
 impl ShipView {
     pub fn new(phi: &mut Phi) -> ShipView {
-        let sprite = Sprite::load(&mut phi.renderer, "assets/spaceship.png").unwrap();
+        let spritesheet = Sprite::load(&mut phi.renderer, "assets/spaceship.png").unwrap();
+        let mut sprites = Vec::with_capacity(9);
+        for y in 0..3 {
+            for x in 0..3 {
+                sprites.push(spritesheet.region(Rectangle {
+                                                    w: SHIP_W,
+                                                    h: SHIP_H,
+                                                    x: SHIP_W * x as f64,
+                                                    y: SHIP_H * y as f64,
+                                                })
+                                 .unwrap());
+            }
+        }
         ShipView {
             player: Ship {
                 rect: Rectangle {
@@ -27,7 +53,8 @@ impl ShipView {
                     w: 32.0,
                     h: 32.0,
                 },
-                sprite: sprite,
+                sprites: sprites,
+                current: ShipFrame::MidNorm,
             },
         }
     }
@@ -71,7 +98,20 @@ impl View for ShipView {
             .rect
             .move_inside(movable_region)
             .unwrap();
-        self.player.sprite.render(&mut phi.renderer, self.player.rect);
+        self.player.current =
+    if dx == 0.0 && dy < 0.0       { ShipFrame::UpNorm }
+    else if dx > 0.0 && dy < 0.0   { ShipFrame::UpFast }
+    else if dx < 0.0 && dy < 0.0   { ShipFrame::UpSlow }
+    else if dx == 0.0 && dy == 0.0 { ShipFrame::MidNorm }
+    else if dx > 0.0 && dy == 0.0  { ShipFrame::MidFast }
+    else if dx < 0.0 && dy == 0.0  { ShipFrame::MidSlow }
+    else if dx == 0.0 && dy > 0.0  { ShipFrame::DownNorm }
+    else if dx > 0.0 && dy > 0.0   { ShipFrame::DownFast }
+    else if dx < 0.0 && dy > 0.0   { ShipFrame::DownSlow }
+    else { unreachable!() };
+
+
+        self.player.sprites[self.player.current as usize].render(&mut phi.renderer, self.player.rect);
         ViewAction::None
     }
 }

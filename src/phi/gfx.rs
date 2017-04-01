@@ -6,8 +6,7 @@ use sdl2::image::LoadTexture;
 use std::path::Path;
 use std::cell::RefCell;
 use std::rc::Rc;
-const SHIP_W: f64 = 43.0;
-const SHIP_H: f64 = 39.0;
+
 
 //tells compiler to automatically implement the Clone trait
 #[derive(Clone)]
