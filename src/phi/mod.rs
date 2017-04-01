@@ -25,6 +25,7 @@ pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
     ttf_context: Sdl2TtfContext,
+    cached_fonts: HashMap<(&'static str, i32), ::sdl2::ttf::Font<'window, 'static>>,
 }
 impl<'window> Phi<'window> {
     fn new(events: Events, renderer: Renderer<'window>) -> Phi<'window> {
@@ -32,6 +33,7 @@ impl<'window> Phi<'window> {
             events: events,
             renderer: renderer,
             ttf_context: ::sdl2::ttf::init().unwrap(),
+            cached_fonts: HashMap::new(),
         }
     }
     pub fn output_size(&self) -> (f64, f64) {
@@ -41,10 +43,19 @@ impl<'window> Phi<'window> {
     pub fn ttf_str_sprite(&mut self,
                           text: &str,
                           font_path: &'static str,
-                          size: u16,
+                          size: i32,
                           color: Color)
                           -> Option<Sprite> {
-        self.ttf_context.load_font(Path::new(font_path), size).ok()
+        if let Some(font) = self.cached_fonts.get(&(font_path, size)) {
+            return font.render(text)
+                       .blended(color)
+                       .ok()
+                       .and_then(|surface| {
+                                     self.renderer.create_texture_from_surface(&surface).ok()
+                                 })
+                       .map(Sprite::new);
+        }
+        self.ttf_context.load_font(Path::new(font_path), size as u16).ok()
             //? We must wrap the next steps in a closure because borrow checker.
             //? More precisely, `font` must live at least until the texture is
             //? created.

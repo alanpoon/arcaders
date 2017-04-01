@@ -29,6 +29,7 @@ impl Action {
 }
 pub struct MainMenuView {
     actions: Vec<Action>,
+    selected: i8,
 }
 
 impl MainMenuView {
@@ -40,6 +41,7 @@ impl MainMenuView {
                                                    ViewAction::ChangeView(Box::new(::views::game::ShipView::new(phi)))
                                                })),
                           Action::new(phi, "Quit", Box::new(|_| ViewAction::Quit))],
+            selected: 0,
         }
     }
 }
@@ -48,19 +50,51 @@ impl View for MainMenuView {
         if phi.events.now.quit || phi.events.now.key_escape == Some(true) {
             return ViewAction::Quit;
         }
+
+        if phi.events.now.key_space == Some(true) {
+            return (self.actions[self.selected as usize].func)(phi);
+        }
+        if phi.events.now.key_up == Some(true) {
+            self.selected -= 1;
+            if self.selected < 0 {
+                self.selected = self.actions.len() as i8 - 1;
+            }
+        }
+        if phi.events.now.key_down == Some(true) {
+            self.selected += 1;
+            if self.selected < self.actions.len() as i8 - 1 {
+                self.selected = 0;
+            }
+        }
         // Clear the screen
         phi.renderer.set_draw_color(Color::RGB(0, 0, 0));
         phi.renderer.clear();
+        let (win_w, win_h) = phi.output_size();
+
+
         for (i, action) in self.actions.iter().enumerate() {
-            let (w, h) = action.idle_sprite.size();
-            phi.renderer.copy_sprite(&action.idle_sprite,
-                                     Rectangle {
-                                         x: 32.0,
-                                         //? We place every element under the previous one.
-                                         y: 32.0 + 48.0 * i as f64,
-                                         w: w,
-                                         h: h,
-                                     });
+            if self.selected as usize == 1 {
+                let (w, h) = action.hover_sprite.size();
+                phi.renderer.copy_sprite(&action.hover_sprite,
+                                         Rectangle {
+                                             x: (win_w - w) / 2.0,
+                                             //? We place every element under the previous one.
+                                             y: 32.0 + 48.0 * i as f64,
+                                             w: w,
+                                             h: h,
+                                         });
+            } else {
+                let (w, h) = action.idle_sprite.size();
+                phi.renderer.copy_sprite(&action.idle_sprite,
+                                         Rectangle {
+                                             x: (win_w - w) / 2.0,
+                                             //? We place every element under the previous one.
+                                             y: 32.0 + 48.0 * i as f64,
+                                             w: w,
+                                             h: h,
+                                         });
+            }
+
         }
         ViewAction::None
     }
