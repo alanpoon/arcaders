@@ -17,12 +17,12 @@ impl Action {
             idle_sprite: phi.ttf_str_sprite(label,
                                             "assets/belligerent.ttf",
                                             32,
-                                            Color::RGB(220, 220, 220))
+                                            Color::RGB(216, 21, 21))
                 .unwrap(),
             hover_sprite: phi.ttf_str_sprite(label,
                                              "assets/belligerent.ttf",
                                              38,
-                                             Color::RGB(220, 220, 220))
+                                             Color::RGB(255, 255, 255))
                 .unwrap(),
         }
     }
@@ -62,7 +62,7 @@ impl View for MainMenuView {
         }
         if phi.events.now.key_down == Some(true) {
             self.selected += 1;
-            if self.selected < self.actions.len() as i8 - 1 {
+            if self.selected > self.actions.len() as i8 - 1 {
                 self.selected = 0;
             }
         }
