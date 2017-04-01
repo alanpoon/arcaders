@@ -24,7 +24,7 @@ struct_events! {
 pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
-    ttf_context:Sdl2TtfContext,
+    ttf_context: Sdl2TtfContext,
 }
 impl<'window> Phi<'window> {
     fn new(events: Events, renderer: Renderer<'window>) -> Phi<'window> {
@@ -42,7 +42,8 @@ impl<'window> Phi<'window> {
                           text: &str,
                           font_path: &'static str,
                           size: u16,
-                          color: Color)->Option<Sprite> {
+                          color: Color)
+                          -> Option<Sprite> {
         self.ttf_context.load_font(Path::new(font_path), size).ok()
             //? We must wrap the next steps in a closure because borrow checker.
             //? More precisely, `font` must live at least until the texture is
@@ -80,7 +81,6 @@ pub fn spawn<F>(title: &str, init: F)
     let video = sdl_context.video().unwrap();
     let mut timer = sdl_context.timer().unwrap();
     let _image_context = ::sdl2::image::init(::sdl2::image::INIT_PNG).unwrap();
-    let _ttf_context = ::sdl2::ttf::init().unwrap();
 
     // Create the window
     let window = video.window(title, 800, 600)
