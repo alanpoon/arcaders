@@ -62,7 +62,7 @@ impl View for MainMenuView {
         }
         if phi.events.now.key_down == Some(true) {
             self.selected += 1;
-            if self.selected > self.actions.len() as i8 - 1 {
+            if self.selected >= self.actions.len() as i8 - 1 {
                 self.selected = 0;
             }
         }
@@ -73,7 +73,7 @@ impl View for MainMenuView {
 
 
         for (i, action) in self.actions.iter().enumerate() {
-            if self.selected as usize == 1 {
+            if self.selected as usize == i {
                 let (w, h) = action.hover_sprite.size();
                 phi.renderer.copy_sprite(&action.hover_sprite,
                                          Rectangle {
