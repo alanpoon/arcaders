@@ -6,46 +6,15 @@ use sdl2::render::{Texture, TextureQuery};
 use sdl2::image::LoadTexture;
 use sdl2::render::Renderer;
 use sdl2::pixels::Color;
+use views::shared::Background;
+
 // Constants
 const PLAYER_SPEED: f64 = 180.0;
 const SHIP_W: f64 = 43.0;
 const SHIP_H: f64 = 39.0;
 const DEBUG: bool = false;
 
-#[derive(Clone)]
-struct Background {
-    pos: f64,
-    // The amount of pixels moved to the left every second
-    vel: f64,
-    sprite: Sprite,
-}
-impl Background {
-    fn render(&mut self, renderer: &mut Renderer, elapsed: f64) {
-        // We define a logical position as depending solely on the time and the
-        // dimensions of the image, not on the screen's size.
-        let size = self.sprite.size();
-        self.pos += self.vel * elapsed;
-        if self.pos > size.0 {
-            self.pos -= size.0
-        }
-        // We determine the scale ratio of the window to the sprite.
-        let (win_w, win_h) = renderer.output_size().unwrap();
-        let scale = win_h as f64 / size.1;
-        // We render as many copies of the background as necessary to fill
-        // the screen.
-        let mut physical_left = -self.pos * scale;
-        while physical_left < win_w as f64 {
-            renderer.copy_sprite(&self.sprite,
-                                 Rectangle {
-                                     x: physical_left,
-                                     y: 0.0,
-                                     w: size.0 * scale,
-                                     h: win_h as f64,
-                                 });
-            physical_left += size.0 * scale;
-        }
-    }
-}
+
 
 #[derive(Clone, Copy)]
 enum ShipFrame {

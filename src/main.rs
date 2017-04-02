@@ -3,7 +3,7 @@ extern crate sdl2;
 #[macro_use]
 mod phi;
 mod views;
-
+use views::shared::Background;
 
 
 fn main() {
