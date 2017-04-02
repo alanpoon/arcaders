@@ -2,7 +2,7 @@ use phi::{Phi, View, ViewAction, gfx};
 use phi::gfx::{CopySprite, Sprite};
 use sdl2::pixels::Color;
 use phi::data::Rectangle;
-use views::shared::Background;
+use views::shared::{Background, BgSet};
 struct Action {
     /// The function which should be executed if the action is chosen.
     func: Box<Fn(&mut Phi) -> ViewAction>,
@@ -30,9 +30,7 @@ impl Action {
 pub struct MainMenuView {
     actions: Vec<Action>,
     selected: i8,
-    bg_back: Background,
-    bg_middle: Background,
-    bg_front: Background,
+    bg: BgSet,
 }
 
 impl MainMenuView {
@@ -45,21 +43,7 @@ impl MainMenuView {
                                                })),
                           Action::new(phi, "Quit", Box::new(|_| ViewAction::Quit))],
             selected: 0,
-            bg_back: Background {
-                pos: 0.0,
-                vel: 20.0,
-                sprite: Sprite::load(&mut phi.renderer, "assets/starBG.png").unwrap(),
-            },
-            bg_middle: Background {
-                pos: 0.0,
-                vel: 40.0,
-                sprite: Sprite::load(&mut phi.renderer, "assets/starMG.png").unwrap(),
-            },
-            bg_front: Background {
-                pos: 0.0,
-                vel: 80.0,
-                sprite: Sprite::load(&mut phi.renderer, "assets/starFG.png").unwrap(),
-            },
+            bg: BgSet::new(&mut phi.renderer),
         }
     }
 }
@@ -80,17 +64,18 @@ impl View for MainMenuView {
         }
         if phi.events.now.key_down == Some(true) {
             self.selected += 1;
-            if self.selected >= self.actions.len() as i8 - 1 {
+            if self.selected >= self.actions.len() as i8 {
                 self.selected = 0;
             }
         }
+
         // Clear the screen
         phi.renderer.set_draw_color(Color::RGB(0, 0, 0));
         phi.renderer.clear();
         // Render the background
-        self.bg_back.render(&mut phi.renderer, elapsed);
-        self.bg_middle.render(&mut phi.renderer, elapsed);
-        self.bg_front.render(&mut phi.renderer, elapsed);
+        self.bg.back.render(&mut phi.renderer, elapsed);
+        self.bg.middle.render(&mut phi.renderer, elapsed);
+        self.bg.front.render(&mut phi.renderer, elapsed);
         // Definitions for the menu layout
         let (win_w, win_h) = phi.output_size();
         let label_h = 50.0;
