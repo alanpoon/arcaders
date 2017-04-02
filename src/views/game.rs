@@ -38,9 +38,16 @@ pub struct ShipView {
     bg: BgSet,
 }
 impl ShipView {
+    #[allow(dead_code)]
     pub fn new(phi: &mut Phi) -> ShipView {
+        let bg = BgSet::new(&mut phi.renderer);
+        ShipView::with_backgrounds(phi, bg)
+    }
+
+    pub fn with_backgrounds(phi: &mut Phi, bg: BgSet) -> ShipView {
         let spritesheet = Sprite::load(&mut phi.renderer, "assets/spaceship.png").unwrap();
         let mut sprites = Vec::with_capacity(9);
+
         for y in 0..3 {
             for x in 0..3 {
                 sprites.push(spritesheet.region(Rectangle {
@@ -52,25 +59,28 @@ impl ShipView {
                                  .unwrap());
             }
         }
+
         ShipView {
             player: Ship {
                 rect: Rectangle {
                     x: 64.0,
                     y: 64.0,
-                    w: 32.0,
-                    h: 32.0,
+                    w: SHIP_W,
+                    h: SHIP_H,
                 },
                 sprites: sprites,
                 current: ShipFrame::MidNorm,
             },
-            bg: BgSet::new(&mut phi.renderer),
+
+            bg: bg,
         }
     }
 }
 impl View for ShipView {
     fn render(&mut self, phi: &mut Phi, elapsed: f64) -> ViewAction {
         if phi.events.now.key_escape == Some(true) {
-            return ViewAction::ChangeView(Box::new(::views::main_menu::MainMenuView::new(phi)));
+            let bg = self.bg.clone();
+            return ViewAction::ChangeView(Box::new(::views::main_menu::MainMenuView::with_backgrounds(phi,bg)));
         }
 
         // [TODO] Insert the moving logic here

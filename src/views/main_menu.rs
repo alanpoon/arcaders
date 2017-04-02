@@ -5,12 +5,15 @@ use phi::data::Rectangle;
 use views::shared::{Background, BgSet};
 struct Action {
     /// The function which should be executed if the action is chosen.
-    func: Box<Fn(&mut Phi) -> ViewAction>,
+    func: Box<Fn(&mut Phi, BgSet) -> ViewAction>,
     idle_sprite: Sprite,
     hover_sprite: Sprite,
 }
 impl Action {
-    fn new(phi: &mut Phi, label: &'static str, func: Box<Fn(&mut Phi) -> ViewAction>) -> Action {
+    fn new(phi: &mut Phi,
+           label: &'static str,
+           func: Box<Fn(&mut Phi, BgSet) -> ViewAction>)
+           -> Action {
 
         Action {
             func: func,
@@ -35,15 +38,20 @@ pub struct MainMenuView {
 
 impl MainMenuView {
     pub fn new(phi: &mut Phi) -> MainMenuView {
+        let bg = BgSet::new(&mut phi.renderer);
+        MainMenuView::with_backgrounds(phi, bg)
+    }
+    pub fn with_backgrounds(phi: &mut Phi, bg: BgSet) -> MainMenuView {
         MainMenuView {
             actions: vec![Action::new(phi,
                                       "New Game",
-                                      Box::new(|phi| {
-                                                   ViewAction::ChangeView(Box::new(::views::game::ShipView::new(phi)))
+                                      Box::new(|phi, bg| {
+                                                   ViewAction::ChangeView(Box::new(
+                        ::views::game::ShipView::with_backgrounds(phi, bg)))
                                                })),
-                          Action::new(phi, "Quit", Box::new(|_| ViewAction::Quit))],
+                          Action::new(phi, "Quit", Box::new(|_, _| ViewAction::Quit))],
             selected: 0,
-            bg: BgSet::new(&mut phi.renderer),
+            bg: bg,
         }
     }
 }
@@ -53,8 +61,9 @@ impl View for MainMenuView {
             return ViewAction::Quit;
         }
 
-        if phi.events.now.key_space == Some(true) {
-            return (self.actions[self.selected as usize].func)(phi);
+        if phi.events.now.key_space == Some(true) || phi.events.now.key_enter == Some(true) {
+            let bg = self.bg.clone();
+            return (self.actions[self.selected as usize].func)(phi, bg);
         }
         if phi.events.now.key_up == Some(true) {
             self.selected -= 1;
