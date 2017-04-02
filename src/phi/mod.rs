@@ -24,15 +24,18 @@ struct_events! {
 pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
-    ttf_context: Sdl2TtfContext,
-    cached_fonts: HashMap<(&'static str, i32), ::sdl2::ttf::Font<'window, 'static>>,
+    pub ttf_context: &'window Sdl2TtfContext,
+    cached_fonts: HashMap<(&'static str, i32), ::sdl2::ttf::Font<'window, 'window>>,
 }
 impl<'window> Phi<'window> {
-    fn new(events: Events, renderer: Renderer<'window>) -> Phi<'window> {
+    fn new(events: Events,
+           renderer: Renderer<'window>,
+           ttf_context: &'window Sdl2TtfContext)
+           -> Phi<'window> {
         Phi {
             events: events,
             renderer: renderer,
-            ttf_context: ::sdl2::ttf::init().unwrap(),
+            ttf_context: ttf_context,
             cached_fonts: HashMap::new(),
         }
     }
@@ -55,17 +58,14 @@ impl<'window> Phi<'window> {
                                  })
                        .map(Sprite::new);
         }
-        self.ttf_context.load_font(Path::new(font_path), size as u16).ok()
-            //? We must wrap the next steps in a closure because borrow checker.
-            //? More precisely, `font` must live at least until the texture is
-            //? created.
-            .and_then(|font| font
-                //? If this worked, we try to create a surface from the font.
-                .render(text).blended(color).ok()
-                //? If this worked, we try to make this surface into a texture.
-                .and_then(|surface| self.renderer.create_texture_from_surface(&surface).ok())
-                //? If this worked, we load
-                .map(Sprite::new))
+        self.ttf_context
+            .load_font(Path::new(font_path), size as u16)
+            .ok()
+            .and_then(|font| {
+                          self.cached_fonts.insert((font_path, size), font);
+                          self.ttf_str_sprite(text, font_path, size, color)
+                      })
+
     }
 }
 
@@ -92,7 +92,7 @@ pub fn spawn<F>(title: &str, init: F)
     let video = sdl_context.video().unwrap();
     let mut timer = sdl_context.timer().unwrap();
     let _image_context = ::sdl2::image::init(::sdl2::image::INIT_PNG).unwrap();
-
+    let _ttf_context = ::sdl2::ttf::init().unwrap();
     // Create the window
     let window = video.window(title, 800, 600)
         .position_centered()
@@ -105,7 +105,8 @@ pub fn spawn<F>(title: &str, init: F)
                                window.renderer()
                                    .accelerated()
                                    .build()
-                                   .unwrap());
+                                   .unwrap(),
+                               &_ttf_context);
 
     //create default view using a box
     let mut current_view: Box<View> = init(&mut context);
