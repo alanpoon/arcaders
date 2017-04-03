@@ -58,16 +58,69 @@ impl Sprite {
     pub fn size(&self) -> (f64, f64) {
         (self.src.w, self.src.h)
     }
-    pub fn render(&self, renderer: &mut Renderer, dest: Rectangle) {
+}
+
+impl Renderable for Sprite {
+    fn render(&self, renderer: &mut Renderer, dest: Rectangle) {
         renderer.copy(&mut self.tex.borrow_mut(), self.src.to_sdl(), dest.to_sdl());
     }
 }
-pub trait CopySprite {
-    fn copy_sprite(&mut self, sprite: &Sprite, dest: Rectangle);
+#[derive(Clone)]
+pub struct AnimatedSprite {
+    sprites: Vec<Sprite>,
+    frame_delay: f64,
+    current_time: f64,
 }
+impl AnimatedSprite {
+    pub fn new(sprites: Vec<Sprite>, frame_delay: f64) -> AnimatedSprite {
+        AnimatedSprite {
+            sprites: sprites,
+            frame_delay: frame_delay,
+            current_time: 0.0,
+        }
+    }
+    pub fn with_fps(sprites: Vec<Sprite>, fps: f64) -> AnimatedSprite {
+        if fps == 0.0 {
+            panic!("Passed 0 to AnimatedSprite::with_fps");
+        }
+        AnimatedSprite::new(sprites, 1.0 / fps)
+    }
+    pub fn frames(&self) -> usize {
+        self.sprites.len()
+    }
+    pub fn set_frame_delay(&mut self, frame_delay: f64) {
+        self.frame_delay = frame_delay;
+    }
+    pub fn set_fps(&mut self, fps: f64) {
+        if fps == 0.0 {
+            panic!("Passed 0 to AnimatedSprite::set_fps");
+        }
+        self.set_frame_delay(1.0 / fps);
+    }
+    pub fn add_time(&mut self, dt: f64) {
+        self.current_time += dt;
+        if self.current_time < 0.0 {
+            self.current_time = (self.frames() - 1) as f64 * self.frame_delay;
+        }
+    }
+}
+impl Renderable for AnimatedSprite {
+    /// Renders the current frame of the sprite.
+    fn render(&self, renderer: &mut Renderer, dest: Rectangle) {
+        let current_frame = (self.current_time / self.frame_delay) as usize % self.frames();
 
-impl<'window> CopySprite for Renderer<'window> {
-    fn copy_sprite(&mut self, sprite: &Sprite, dest: Rectangle) {
-        sprite.render(self, dest);
+        let sprite = &self.sprites[current_frame];
+        sprite.render(renderer, dest);
+    }
+}
+pub trait Renderable {
+    fn render(&self, renderer: &mut Renderer, dest: Rectangle);
+}
+pub trait CopySprite<T> {
+    fn copy_sprite(&mut self, sprite: &T, dest: Rectangle);
+}
+impl<'window, T: Renderable> CopySprite<T> for Renderer<'window> {
+    fn copy_sprite(&mut self, renderable: &T, dest: Rectangle) {
+        renderable.render(self, dest);
     }
 }
