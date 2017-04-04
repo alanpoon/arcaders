@@ -27,8 +27,8 @@ struct Asteroid {
 
 impl Asteroid {
     fn new(phi: &mut Phi) -> Asteroid {
-        Asteroid {
-            sprite: Asteroid::get_sprite(phi, 15.0),
+        let mut asteroid = Asteroid {
+            sprite: Asteroid::get_sprite(phi, 1.0),
             rect: Rectangle {
                 w: ASTEROID_SIDE,
                 h: ASTEROID_SIDE,
@@ -36,7 +36,20 @@ impl Asteroid {
                 y: 128.0,
             },
             vel: 0.0,
-        }
+        };
+        asteroid.reset(phi);
+        asteroid
+    }
+    fn reset(&mut self, phi: &mut Phi) {
+        let (w, h) = phi.output_size();
+        self.sprite.set_fps(::rand::random::<f64>().abs() * 20.0 + 10.0);
+        self.rect = Rectangle {
+            w: ASTEROID_SIDE,
+            h: ASTEROID_SIDE,
+            x: w,
+            y: ::rand::random::<f64>().abs() * (h - ASTEROID_SIDE),
+        };
+        self.vel = ::rand::random::<f64>().abs() * 100.0 + 50.0;
     }
     fn get_sprite(phi: &mut Phi, fps: f64) -> AnimatedSprite {
         let asteroid_spritesheet = Sprite::load(&mut phi.renderer, ASTEROID_PATH).unwrap();
@@ -57,8 +70,13 @@ impl Asteroid {
         }
         AnimatedSprite::new(asteroid_sprites, fps)
     }
-    fn update(&mut self, _: &mut Phi, dt: f64) {
+    fn update(&mut self, phi: &mut Phi, dt: f64) {
+        self.rect.x -= dt * self.vel;
         self.sprite.add_time(dt);
+
+        if self.rect.x <= -ASTEROID_SIDE {
+            self.reset(phi);
+        }
     }
 
     fn render(&mut self, phi: &mut Phi) {
