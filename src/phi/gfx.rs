@@ -67,14 +67,14 @@ impl Renderable for Sprite {
 }
 #[derive(Clone)]
 pub struct AnimatedSprite {
-    sprites: Vec<Sprite>,
+    sprites: Rc<Vec<Sprite>>,
     frame_delay: f64,
     current_time: f64,
 }
 impl AnimatedSprite {
     pub fn new(sprites: Vec<Sprite>, frame_delay: f64) -> AnimatedSprite {
         AnimatedSprite {
-            sprites: sprites,
+            sprites: Rc::new(sprites),
             frame_delay: frame_delay,
             current_time: 0.0,
         }
