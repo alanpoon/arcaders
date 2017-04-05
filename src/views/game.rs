@@ -86,18 +86,22 @@ impl Asteroid {
         phi.renderer.copy_sprite(&self.sprite, self.rect);
     }
 }
+trait Bullet {
+    fn update(self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>>;
+    fn render(&self, phi: &mut Phi);
+    fn rect(&self) -> Rectangle;
+}
 
-#[derive(Clone, Copy)]
 struct RectBullet {
     rect: Rectangle,
 }
-impl RectBullet {
-    fn update(mut self, phi: &mut Phi, dt: f64) -> Option<Self> {
+impl Bullet for RectBullet {
+    fn update(mut self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>> {
         let (w, _) = phi.output_size();
         self.rect.x += dt * BULLET_SPEED;
         if self.rect.x > w { None } else { Some(self) }
     }
-    fn render(mut self, phi: &mut Phi) {
+    fn render(&self, phi: &mut Phi) {
         phi.renderer.set_draw_color(Color::RGB(230, 230, 30));
         phi.renderer.fill_rect(self.rect.to_sdl().unwrap());
     }
@@ -105,6 +109,13 @@ impl RectBullet {
         self.rect
     }
 }
+
+#[derive(Clone, Copy)]
+enum CannonType {
+    RectBullet,
+}
+
+
 #[derive(Clone, Copy)]
 enum ShipFrame {
     UpNorm = 0,
@@ -121,35 +132,39 @@ struct Ship {
     rect: Rectangle,
     sprites: Vec<Sprite>,
     current: ShipFrame,
+    cannon: CannonType,
 }
 impl Ship {
-    fn spawn_bullets(&self) -> Vec<RectBullet> {
+    fn spawn_bullets(&self) -> Vec<Box<Bullet>> {
         let cannons_x = self.rect.x + 30.0;
         let cannon1_y = self.rect.y + 6.0;
         let cannon2_y = self.rect.y + SHIP_H - 10.0;
-
-        // One bullet at the tip of every cannon
-        vec![RectBullet {
+        match self.cannon {
+            CannonType::RectBullet=>
+                // One bullet at the tip of every cannon
+        vec![Box::new(RectBullet {
                  rect: Rectangle {
                      x: cannons_x,
                      y: cannon1_y,
                      w: BULLET_W,
                      h: BULLET_H,
                  },
-             },
-             RectBullet {
+             }),
+             Box::new(RectBullet {
                  rect: Rectangle {
                      x: cannons_x,
                      y: cannon2_y,
                      w: BULLET_W,
                      h: BULLET_H,
                  },
-             }]
+             })]
+        }
+
     }
 }
 pub struct ShipView {
     player: Ship,
-    bullets: Vec<RectBullet>,
+    bullets: Vec<Box<Bullet>>,
     asteroid: Asteroid,
     bg: BgSet,
 }
@@ -186,6 +201,7 @@ impl ShipView {
                 },
                 sprites: sprites,
                 current: ShipFrame::MidNorm,
+                cannon: CannonType::RectBullet,
             },
             bullets: vec![],
             asteroid: Asteroid::new(phi),
@@ -263,13 +279,24 @@ impl View for ShipView {
         } else {
             unreachable!()
         };
+        // Set `self.bullets` to be the empty vector and put its content inside of `old_bullets`
+        let old_bullets = ::std::mem::replace(&mut self.bullets, vec![]);
         // Update the Bullet
-        self.bullets = self.bullets
-            .iter()
-            .filter_map(|bullet| bullet.update(phi, elapsed))
-            .collect();
+        self.bullets =
+            old_bullets.into_iter().filter_map(|bullet| bullet.update(phi, elapsed)).collect();
         if phi.events.now.key_space == Some(true) {
             self.bullets.append(&mut self.player.spawn_bullets());
+        }
+        if phi.events.now.key_1 == Some(true) {
+            self.player.cannon = CannonType::RectBullet;
+        }
+
+        if phi.events.now.key_2 == Some(true) {
+            // TODO
+        }
+
+        if phi.events.now.key_3 == Some(true) {
+            // TODO
         }
         // Update the asteroid
         self.asteroid.update(phi, elapsed);
