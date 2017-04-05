@@ -110,12 +110,52 @@ impl Bullet for RectBullet {
     }
 }
 
+
+#[derive(Clone, Copy)]
+struct SineBullet {
+    pos_x: f64,
+    origin_y: f64,
+    amplitude: f64,
+    angular_vel: f64,
+    total_time: f64,
+}
+impl Bullet for SineBullet {
+    fn update(mut self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>> {
+        //? We store the total time...
+        self.total_time += dt;
+
+        //? And move at the same speed as regular bullets.
+        self.pos_x += BULLET_SPEED * dt;
+
+        // If the bullet has left the screen, then delete it.
+        let (w, _) = phi.output_size();
+
+        if self.rect().x > w { None } else { Some(self) }
+    }
+
+    fn render(&self, phi: &mut Phi) {
+        // We will render this kind of bullet in yellow.
+        phi.renderer.set_draw_color(Color::RGB(230, 230, 30));
+        phi.renderer.fill_rect(self.rect().to_sdl().unwrap());
+    }
+
+    fn rect(&self) -> Rectangle {
+        //? Just the general form of the sine function, minus the initial time.
+        let dy = self.amplitude * f64::sin(self.angular_vel * self.total_time);
+        Rectangle {
+            x: self.pos_x,
+            y: self.origin_y + dy,
+            w: BULLET_W,
+            h: BULLET_H,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 enum CannonType {
     RectBullet,
+    SineBullet { amplitude: f64, angular_vel: f64 },
 }
-
-
 #[derive(Clone, Copy)]
 enum ShipFrame {
     UpNorm = 0,
@@ -157,7 +197,25 @@ impl Ship {
                      w: BULLET_W,
                      h: BULLET_H,
                  },
-             })]
+             })],
+
+            CannonType::SineBullet { amplitude, angular_vel } =>
+                vec![
+                    Box::new(SineBullet {
+                        pos_x: cannons_x,
+                        origin_y: cannon1_y,
+                        amplitude: amplitude,
+                        angular_vel: angular_vel,
+                        total_time: 0.0,
+                    }),
+                    Box::new(SineBullet {
+                        pos_x: cannons_x,
+                        origin_y: cannon2_y,
+                        amplitude: amplitude,
+                        angular_vel: angular_vel,
+                        total_time: 0.0,
+                    }),
+                ]
         }
 
     }
@@ -292,7 +350,10 @@ impl View for ShipView {
         }
 
         if phi.events.now.key_2 == Some(true) {
-            // TODO
+            self.player.cannon = CannonType::SineBullet {
+                amplitude: 10.0,
+                angular_vel: 15.0,
+            };
         }
 
         if phi.events.now.key_3 == Some(true) {
