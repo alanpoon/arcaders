@@ -29,6 +29,32 @@ struct Asteroid {
 }
 
 impl Asteroid {
+    fn factory(phi: &mut Phi) -> AsteroidFactory {
+        // Read the asteroid's image from the filesystem and construct an
+        // animated sprite out of it.
+
+        let asteroid_spritesheet = Sprite::load(&mut phi.renderer, ASTEROID_PATH).unwrap();
+        let mut asteroid_sprites = Vec::with_capacity(ASTEROIDS_TOTAL);
+
+        for yth in 0..ASTEROIDS_HIGH {
+            for xth in 0..ASTEROIDS_WIDE {
+                if ASTEROIDS_WIDE * yth + xth >= ASTEROIDS_TOTAL {
+                    break;
+                }
+
+                asteroid_sprites.push(asteroid_spritesheet.region(Rectangle {
+                                                                      w: ASTEROID_SIDE,
+                                                                      h: ASTEROID_SIDE,
+                                                                      x: ASTEROID_SIDE * xth as f64,
+                                                                      y: ASTEROID_SIDE * yth as f64,
+                                                                  })
+                                          .unwrap());
+            }
+        }
+
+        // Return the data required to build an asteroid
+        AsteroidFactory { sprite: AnimatedSprite::with_fps(asteroid_sprites, 1.0) }
+    }
     fn new(phi: &mut Phi) -> Asteroid {
         let mut asteroid = Asteroid {
             sprite: Asteroid::get_sprite(phi, 1.0),
@@ -73,17 +99,55 @@ impl Asteroid {
         }
         AnimatedSprite::new(asteroid_sprites, fps)
     }
-    fn update(&mut self, phi: &mut Phi, dt: f64) {
+    fn update(mut self, dt: f64) -> Option<Asteroid> {
         self.rect.x -= dt * self.vel;
         self.sprite.add_time(dt);
 
         if self.rect.x <= -ASTEROID_SIDE {
-            self.reset(phi);
+            None
+        } else {
+            Some(self)
         }
     }
 
-    fn render(&mut self, phi: &mut Phi) {
+    fn render(&self, phi: &mut Phi) {
+        if DEBUG {
+            // Render the bounding box
+            phi.renderer.set_draw_color(Color::RGB(200, 200, 50));
+            phi.renderer.fill_rect(self.rect().to_sdl().unwrap());
+        }
         phi.renderer.copy_sprite(&self.sprite, self.rect);
+    }
+    fn rect(&self) -> Rectangle {
+        self.rect
+    }
+}
+struct AsteroidFactory {
+    sprite: AnimatedSprite,
+}
+impl AsteroidFactory {
+    fn random(&self, phi: &mut Phi) -> Asteroid {
+        let (w, h) = phi.output_size();
+
+        // FPS in [10.0, 30.0)
+        let mut sprite = self.sprite.clone();
+        sprite.set_fps(::rand::random::<f64>().abs() * 20.0 + 10.0);
+
+        Asteroid {
+            sprite: sprite,
+
+            // In the screen vertically, and over the right of the screen
+            // horizontally.
+            rect: Rectangle {
+                w: ASTEROID_SIDE,
+                h: ASTEROID_SIDE,
+                x: w,
+                y: ::rand::random::<f64>().abs() * (h - ASTEROID_SIDE),
+            },
+
+            // vel in [50.0, 150.0)
+            vel: ::rand::random::<f64>().abs() * 100.0 + 50.0,
+        }
     }
 }
 trait Bullet {
@@ -220,20 +284,21 @@ impl Ship {
 
     }
 }
-pub struct ShipView {
+pub struct GameView {
     player: Ship,
     bullets: Vec<Box<Bullet>>,
-    asteroid: Asteroid,
+    asteroids: Vec<Asteroid>,
     bg: BgSet,
+    asteroid_factory: AsteroidFactory,
 }
-impl ShipView {
+impl GameView {
     #[allow(dead_code)]
-    pub fn new(phi: &mut Phi) -> ShipView {
+    pub fn new(phi: &mut Phi) -> GameView {
         let bg = BgSet::new(&mut phi.renderer);
-        ShipView::with_backgrounds(phi, bg)
+        GameView::with_backgrounds(phi, bg)
     }
 
-    pub fn with_backgrounds(phi: &mut Phi, bg: BgSet) -> ShipView {
+    pub fn with_backgrounds(phi: &mut Phi, bg: BgSet) -> GameView {
         let spritesheet = Sprite::load(&mut phi.renderer, "assets/spaceship.png").unwrap();
         let mut sprites = Vec::with_capacity(9);
 
@@ -249,7 +314,7 @@ impl ShipView {
             }
         }
 
-        ShipView {
+        GameView {
             player: Ship {
                 rect: Rectangle {
                     x: 64.0,
@@ -262,12 +327,13 @@ impl ShipView {
                 cannon: CannonType::RectBullet,
             },
             bullets: vec![],
-            asteroid: Asteroid::new(phi),
+            asteroids: vec![],
             bg: bg,
+            asteroid_factory: Asteroid::factory(phi),
         }
     }
 }
-impl View for ShipView {
+impl View for GameView {
     fn render(&mut self, phi: &mut Phi, elapsed: f64) -> ViewAction {
         if phi.events.now.key_escape == Some(true) {
             let bg = self.bg.clone();
@@ -337,6 +403,11 @@ impl View for ShipView {
         } else {
             unreachable!()
         };
+        // Update the Asteroids
+        self.asteroids = ::std::mem::replace(&mut self.asteroids, vec![])
+            .into_iter()
+            .filter_map(|asteroid| asteroid.update(elapsed))
+            .collect();
         // Set `self.bullets` to be the empty vector and put its content inside of `old_bullets`
         let old_bullets = ::std::mem::replace(&mut self.bullets, vec![]);
         // Update the Bullet
@@ -345,6 +416,11 @@ impl View for ShipView {
         if phi.events.now.key_space == Some(true) {
             self.bullets.append(&mut self.player.spawn_bullets());
         }
+        if ::rand::random::<usize>() % 100 == 0 {
+            self.asteroids.push(self.asteroid_factory.random(phi));
+        }
+        println!("{}", self.asteroids.len());
+
         if phi.events.now.key_1 == Some(true) {
             self.player.cannon = CannonType::RectBullet;
         }
@@ -359,14 +435,16 @@ impl View for ShipView {
         if phi.events.now.key_3 == Some(true) {
             // TODO
         }
-        // Update the asteroid
-        self.asteroid.update(phi, elapsed);
+
         // Render the ship
         phi.renderer.copy_sprite(&self.player.sprites[self.player.current as usize],
                                  self.player.rect);
 
-        //Render the asteroid
-        self.asteroid.render(phi);
+        //Render the asteroids
+        for asteroid in &self.asteroids {
+            asteroid.render(phi);
+        }
+
         //Render the bullets
         for bullet in &self.bullets {
             bullet.render(phi);
