@@ -1,6 +1,6 @@
 use phi::{Phi, View, ViewAction};
 use phi::gfx::{CopySprite, Sprite, AnimatedSprite};
-use phi::data::Rectangle;
+use phi::data::{Rectangle, MaybeAlive};
 use std::path::Path;
 use sdl2::render::{Texture, TextureQuery};
 use sdl2::image::LoadTexture;
@@ -403,16 +403,62 @@ impl View for GameView {
         } else {
             unreachable!()
         };
+        let mut player_alive = true;
+        // Update the Bullet pos
+        self.bullets = ::std::mem::replace(&mut self.bullets, vec![])
+            .into_iter()
+            .filter_map(|bullet| bullet.update(phi, elapsed))
+            .collect();
         // Update the Asteroids
+
         self.asteroids = ::std::mem::replace(&mut self.asteroids, vec![])
             .into_iter()
             .filter_map(|asteroid| asteroid.update(elapsed))
             .collect();
-        // Set `self.bullets` to be the empty vector and put its content inside of `old_bullets`
-        let old_bullets = ::std::mem::replace(&mut self.bullets, vec![]);
-        // Update the Bullet
-        self.bullets =
-            old_bullets.into_iter().filter_map(|bullet| bullet.update(phi, elapsed)).collect();
+        //can keep track of which got into a collision
+        let mut transition_bullets: Vec<_> = ::std::mem::replace(&mut self.bullets, vec![])
+            .into_iter()
+            .map(|bullet| {
+                     MaybeAlive {
+                         alive: true,
+                         value: bullet,
+                     }
+                 })
+            .collect();
+
+        self.asteroids = ::std::mem::replace(&mut self.asteroids, vec![])
+            .into_iter()
+            .filter_map(|asteroid| {
+                let mut asteroid_alive = true;
+
+                for bullet in &mut transition_bullets {
+                    //? Notice that we refer to the bullet as `bullet.value`
+                    //? because it has been wrapped in `MaybeAlive`.
+                    if asteroid.rect().overlaps(bullet.value.rect()) {
+                        asteroid_alive = false;
+                        //? We go through every bullet and "kill" those that collide
+                        //? with the asteroid. We do this for every asteroid.
+                        bullet.alive = false;
+                    }
+                }
+
+                // The player's ship is destroyed if it is hit by an asteroid.
+                // In which case, the asteroid is also destroyed.
+                if asteroid.rect().overlaps(self.player.rect) {
+                    asteroid_alive = false;
+                    player_alive = false;
+                }
+
+                //? Then, we use the magic of `filter_map` to keep only the asteroids
+                //? that didn't explode.
+                if asteroid_alive { Some(asteroid) } else { None }
+            })
+            .collect();
+
+        self.bullets = transition_bullets.into_iter().filter_map(MaybeAlive::as_option).collect();
+        if !player_alive {
+            println!("The player's ship has been destroyed.");
+        }
         if phi.events.now.key_space == Some(true) {
             self.bullets.append(&mut self.player.spawn_bullets());
         }

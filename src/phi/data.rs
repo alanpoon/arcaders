@@ -61,3 +61,15 @@ impl Rectangle {
              })
     }
 }
+pub struct MaybeAlive<T> {
+    pub alive: bool,
+    pub value: T,
+}
+
+impl<T> MaybeAlive<T> {
+    /// Checks whether the value is still alive. If this is the case, then
+    /// return `Some(value)`; otherwise, return `None`.
+    pub fn as_option(self) -> Option<T> {
+        if self.alive { Some(self.value) } else { None }
+    }
+}
