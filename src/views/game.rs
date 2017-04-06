@@ -155,6 +155,20 @@ struct Explosion {
     alive_since: f64,
 }
 impl Explosion {
+    fn update(mut self, dt: f64) -> Option<Explosion> {
+        self.alive_since += dt;
+        self.sprite.add_time(dt);
+
+        if self.alive_since >= EXPLOSION_DURATION {
+            None
+        } else {
+            Some(self)
+        }
+    }
+
+    fn render(&self, phi: &mut Phi) {
+        phi.renderer.copy_sprite(&self.sprite, self.rect);
+    }
     fn factory(phi: &mut Phi) -> ExplosionFactory {
         // Read the asteroid's image from the filesystem and construct an
         // animated sprite out of it.
@@ -188,7 +202,20 @@ struct ExplosionFactory {
     sprite: AnimatedSprite,
 }
 impl ExplosionFactory {
-    fn at_center(&self, center: (f64, f64)) {}
+    fn at_center(&self, center: (f64, f64)) -> Explosion {
+        // FPS in [10.0, 30.0)
+        let mut sprite = self.sprite.clone();
+
+        Explosion {
+            sprite: sprite,
+
+            // In the screen vertically, and over the right of the screen
+            // horizontally.
+            rect: Rectangle::with_size(EXPLOSION_SIDE, EXPLOSION_SIDE).center_at(center),
+
+            alive_since: 0.0,
+        }
+    }
 }
 trait Bullet {
     fn update(self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>>;
@@ -330,6 +357,8 @@ pub struct GameView {
     asteroids: Vec<Asteroid>,
     bg: BgSet,
     asteroid_factory: AsteroidFactory,
+    explosions: Vec<Explosion>,
+    explosion_factory: ExplosionFactory,
 }
 impl GameView {
     #[allow(dead_code)]
@@ -370,6 +399,8 @@ impl GameView {
             asteroids: vec![],
             bg: bg,
             asteroid_factory: Asteroid::factory(phi),
+            explosions: vec![],
+            explosion_factory: Explosion::factory(phi),
         }
     }
 }
@@ -455,6 +486,11 @@ impl View for GameView {
             .into_iter()
             .filter_map(|asteroid| asteroid.update(elapsed))
             .collect();
+        // Update the explosions
+        self.explosions = ::std::mem::replace(&mut self.explosions, vec![])
+            .into_iter()
+            .filter_map(|explosion| explosion.update(elapsed))
+            .collect();
         //can keep track of which got into a collision
         let mut transition_bullets: Vec<_> = ::std::mem::replace(&mut self.bullets, vec![])
             .into_iter()
@@ -491,7 +527,13 @@ impl View for GameView {
 
                 //? Then, we use the magic of `filter_map` to keep only the asteroids
                 //? that didn't explode.
-                if asteroid_alive { Some(asteroid) } else { None }
+                if asteroid_alive {
+                    Some(asteroid)
+                } else {
+                    self.explosions.push(self.explosion_factory.at_center(asteroid.rect()
+                                                                              .center()));
+                    None
+                }
             })
             .collect();
 
@@ -534,6 +576,10 @@ impl View for GameView {
         //Render the bullets
         for bullet in &self.bullets {
             bullet.render(phi);
+        }
+        //Render Explosion
+        for explosion in &self.explosions {
+            explosion.render(phi);
         }
         // Render the foreground
         self.bg.front.render(&mut phi.renderer, elapsed);
