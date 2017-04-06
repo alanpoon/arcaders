@@ -1,5 +1,5 @@
 use phi::{Phi, View, ViewAction};
-use phi::gfx::{CopySprite, Sprite, AnimatedSprite};
+use phi::gfx::{CopySprite, Sprite, AnimatedSprite, AnimatedSpriteDescr};
 use phi::data::{Rectangle, MaybeAlive};
 use std::path::Path;
 use sdl2::render::{Texture, TextureQuery};
@@ -21,6 +21,13 @@ const ASTEROID_SIDE: f64 = 96.0;
 const BULLET_SPEED: f64 = 240.0;
 const BULLET_W: f64 = 8.0;
 const BULLET_H: f64 = 4.0;
+const EXPLOSION_PATH: &'static str = "assets/explosion.png";
+const EXPLOSIONS_WIDE: usize = 5;
+const EXPLOSIONS_HIGH: usize = 4;
+const EXPLOSIONS_TOTAL: usize = 17;
+const EXPLOSION_SIDE: f64 = 96.0;
+const EXPLOSION_FPS: f64 = 16.0;
+const EXPLOSION_DURATION: f64 = 1.0 / EXPLOSION_FPS * EXPLOSIONS_TOTAL as f64;
 
 struct Asteroid {
     sprite: AnimatedSprite,
@@ -30,30 +37,22 @@ struct Asteroid {
 
 impl Asteroid {
     fn factory(phi: &mut Phi) -> AsteroidFactory {
-        // Read the asteroid's image from the filesystem and construct an
-        // animated sprite out of it.
-
-        let asteroid_spritesheet = Sprite::load(&mut phi.renderer, ASTEROID_PATH).unwrap();
-        let mut asteroid_sprites = Vec::with_capacity(ASTEROIDS_TOTAL);
-
-        for yth in 0..ASTEROIDS_HIGH {
-            for xth in 0..ASTEROIDS_WIDE {
-                if ASTEROIDS_WIDE * yth + xth >= ASTEROIDS_TOTAL {
-                    break;
-                }
-
-                asteroid_sprites.push(asteroid_spritesheet.region(Rectangle {
-                                                                      w: ASTEROID_SIDE,
-                                                                      h: ASTEROID_SIDE,
-                                                                      x: ASTEROID_SIDE * xth as f64,
-                                                                      y: ASTEROID_SIDE * yth as f64,
-                                                                  })
-                                          .unwrap());
-            }
+        AsteroidFactory {
+            sprite: AnimatedSprite::with_fps(AnimatedSprite::load_frames(phi,
+                                                                         AnimatedSpriteDescr {
+                                                                             image_path:
+                                                                                 ASTEROID_PATH,
+                                                                             total_frames:
+                                                                                 ASTEROIDS_TOTAL,
+                                                                             frames_high:
+                                                                                 ASTEROIDS_HIGH,
+                                                                             frames_wide:
+                                                                                 ASTEROIDS_WIDE,
+                                                                             frame_w: ASTEROID_SIDE,
+                                                                             frame_h: ASTEROID_SIDE,
+                                                                         }),
+                                             1.0),
         }
-
-        // Return the data required to build an asteroid
-        AsteroidFactory { sprite: AnimatedSprite::with_fps(asteroid_sprites, 1.0) }
     }
     fn new(phi: &mut Phi) -> Asteroid {
         let mut asteroid = Asteroid {
@@ -149,6 +148,47 @@ impl AsteroidFactory {
             vel: ::rand::random::<f64>().abs() * 100.0 + 50.0,
         }
     }
+}
+struct Explosion {
+    sprite: AnimatedSprite,
+    rect: Rectangle,
+    alive_since: f64,
+}
+impl Explosion {
+    fn factory(phi: &mut Phi) -> ExplosionFactory {
+        // Read the asteroid's image from the filesystem and construct an
+        // animated sprite out of it.
+
+        let explosion_spritesheet = Sprite::load(&mut phi.renderer, EXPLOSION_PATH).unwrap();
+        let mut explosion_sprites = Vec::with_capacity(EXPLOSIONS_TOTAL);
+
+        for yth in 0..EXPLOSIONS_HIGH {
+            for xth in 0..EXPLOSIONS_WIDE {
+                if EXPLOSIONS_WIDE * yth + xth >= EXPLOSIONS_TOTAL {
+                    break;
+                }
+
+                explosion_sprites.push(explosion_spritesheet.region(Rectangle {
+                                                                        w: EXPLOSION_SIDE,
+                                                                        h: EXPLOSION_SIDE,
+                                                                        x: EXPLOSION_SIDE *
+                                                                           xth as f64,
+                                                                        y: EXPLOSION_SIDE *
+                                                                           yth as f64,
+                                                                    })
+                                           .unwrap());
+            }
+        }
+
+        // Return the data required to build an asteroid
+        ExplosionFactory { sprite: AnimatedSprite::with_fps(explosion_sprites, EXPLOSION_FPS) }
+    }
+}
+struct ExplosionFactory {
+    sprite: AnimatedSprite,
+}
+impl ExplosionFactory {
+    fn at_center(&self, center: (f64, f64)) {}
 }
 trait Bullet {
     fn update(self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>>;
