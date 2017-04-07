@@ -97,6 +97,9 @@ pub fn spawn<F>(title: &str, init: F)
     let mut timer = sdl_context.timer().unwrap();
     let _image_context = ::sdl2::image::init(::sdl2::image::INIT_PNG).unwrap();
     let _ttf_context = ::sdl2::ttf::init().unwrap();
+    let _mixer_context = ::sdl2::mixer::init(::sdl2::mixer::INIT_OGG).unwrap();
+    ::sdl2::mixer::open_audio(44100, ::sdl2::mixer::AUDIO_S16LSB, 2, 1024).unwrap();
+    ::sdl2::mixer::allocate_channels(32);
     // Create the window
     let window = video.window(title, 800, 600)
         .position_centered()

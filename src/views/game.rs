@@ -2,6 +2,8 @@ use phi::{Phi, View, ViewAction};
 use phi::gfx::{CopySprite, Sprite, AnimatedSprite, AnimatedSpriteDescr};
 use phi::data::{Rectangle, MaybeAlive};
 use sdl2::pixels::Color;
+use sdl2::mixer::Music;
+use std::path::Path;
 use views::bullets::*;
 use views::shared::BgSet;
 
@@ -305,11 +307,14 @@ pub struct GameView {
     asteroid_factory: AsteroidFactory,
     explosions: Vec<Explosion>,
     explosion_factory: ExplosionFactory,
+    music:Music<'static>,
 }
 impl GameView {
     pub fn with_backgrounds(phi: &mut Phi, bg: BgSet) -> GameView {
-
-
+let music =
+    Music::from_file(Path::new("assets/mdk_phoenix_orchestral.ogg"))
+    .unwrap();
+ music.play(-1).unwrap();
         GameView {
             player: Player::new(phi),
             bullets: vec![],
@@ -318,6 +323,7 @@ impl GameView {
             asteroid_factory: Asteroid::factory(phi),
             explosions: vec![],
             explosion_factory: Explosion::factory(phi),
+            music:music
         }
     }
 }
