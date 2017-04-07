@@ -406,8 +406,12 @@ impl View for GameView {
                 if asteroid_alive {
                     Some(asteroid)
                 } else {
+
                     self.explosions.push(self.explosion_factory.at_center(asteroid.rect()
                                                                               .center()));
+
+
+                    phi.play_sound(&self.explosion_sound);
                     None
                 }
             })
@@ -419,6 +423,7 @@ impl View for GameView {
         }
         if phi.events.now.key_space == Some(true) {
             self.bullets.append(&mut self.player.spawn_bullets());
+            phi.play_sound(&self.bullet_sound);
         }
         if ::rand::random::<usize>() % 100 == 0 {
             self.asteroids.push(self.asteroid_factory.random(phi));

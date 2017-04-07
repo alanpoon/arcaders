@@ -29,6 +29,7 @@ pub struct Phi<'window> {
     pub events: Events,
     pub renderer: Renderer<'window>,
     pub ttf_context: &'window Sdl2TtfContext,
+    allocated_channels: isize,
     cached_fonts: HashMap<(&'static str, i32), ::sdl2::ttf::Font<'window, 'window>>,
 }
 impl<'window> Phi<'window> {
@@ -36,11 +37,24 @@ impl<'window> Phi<'window> {
            renderer: Renderer<'window>,
            ttf_context: &'window Sdl2TtfContext)
            -> Phi<'window> {
+        let allocated_channels = 32 as isize;
+        ::sdl2::mixer::allocate_channels(allocated_channels as i32);
         Phi {
             events: events,
             renderer: renderer,
             ttf_context: ttf_context,
+            allocated_channels: allocated_channels,
             cached_fonts: HashMap::new(),
+        }
+    }
+    pub fn play_sound(&mut self, sound: &::sdl2::mixer::Chunk) {
+        match ::sdl2::mixer::Channel::all().play(sound, 1) {
+            Err(_) => {
+                self.allocated_channels *= 2;
+                ::sdl2::mixer::allocate_channels(self.allocated_channels as i32);
+                self.play_sound(sound);
+            }
+            _ => {}
         }
     }
     pub fn output_size(&self) -> (f64, f64) {
