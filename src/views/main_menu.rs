@@ -56,14 +56,7 @@ impl MainMenuView {
     }
 }
 impl View for MainMenuView {
-    fn update(mut self: Box<Self>, context: &mut Phi, elapsed: f64) -> ViewAction {
-        // update the Backgrounds
-        self.bg.back.update(elapsed);
-        self.bg.middle.update(elapsed);
-        self.bg.front.update(elapsed);
-        ViewAction::None
-    }
-    fn render(&mut self, phi: &mut Phi) -> ViewAction {
+    fn update(mut self: Box<Self>, phi: &mut Phi, elapsed: f64) -> ViewAction {
         if phi.events.now.quit || phi.events.now.key_escape == Some(true) {
             return ViewAction::Quit;
         }
@@ -84,6 +77,14 @@ impl View for MainMenuView {
                 self.selected = 0;
             }
         }
+        // update the Backgrounds
+        self.bg.back.update(elapsed);
+        self.bg.middle.update(elapsed);
+        self.bg.front.update(elapsed);
+        ViewAction::None
+    }
+    fn render(&mut self, phi: &mut Phi) -> ViewAction {
+
 
         // Clear the screen
         phi.renderer.set_draw_color(Color::RGB(0, 0, 0));

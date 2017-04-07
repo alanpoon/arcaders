@@ -334,94 +334,102 @@ impl GameView {
 }
 impl View for GameView {
     fn update(mut self: Box<Self>, phi: &mut Phi, elapsed: f64) -> ViewAction {
+        if phi.events.now.quit {
+            return ViewAction::Quit;
+        }
+        {
+            let game = &mut *self;
+            // Update the player
+            game.player.update(phi, elapsed);
+            let mut player_alive = true;
+            // Update the game pos
+            game.bullets = ::std::mem::replace(&mut game.bullets, vec![])
+                .into_iter()
+                .filter_map(|bullet| bullet.update(phi, elapsed))
+                .collect();
+            // Update the Asteroids
 
-        // Update the player
-        self.player.update(phi, elapsed);
-        let mut player_alive = true;
-        // Update the Bullet pos
-        self.bullets = self.bullets
-            .into_iter()
-            .filter_map(|bullet| bullet.update(phi, elapsed))
-            .collect();
-        // Update the Asteroids
+            game.asteroids = ::std::mem::replace(&mut game.asteroids, vec![])
+                .into_iter()
+                .filter_map(|asteroid| asteroid.update(elapsed))
+                .collect();
+            // Update the explosions
+            game.explosions = ::std::mem::replace(&mut game.explosions, vec![])
+                .into_iter()
+                .filter_map(|explosion| explosion.update(elapsed))
+                .collect();
+            //can keep track of which got into a collision
+            let mut transition_bullets = ::std::mem::replace(&mut game.bullets, vec![])
+                .into_iter()
+                .map(|bullet| {
+                         MaybeAlive {
+                             alive: true,
+                             value: bullet,
+                         }
+                     })
+                .collect::<Vec<_>>();
 
-        self.asteroids = self.asteroids
-            .into_iter()
-            .filter_map(|asteroid| asteroid.update(elapsed))
-            .collect();
-        // Update the explosions
-        self.explosions = self.explosions
-            .into_iter()
-            .filter_map(|explosion| explosion.update(elapsed))
-            .collect();
-        //can keep track of which got into a collision
-        let mut transition_bullets = self.bullets
-            .into_iter()
-            .map(|bullet| {
-                     MaybeAlive {
-                         alive: true,
-                         value: bullet,
-                     }
-                 })
-            .collect::<Vec<_>>();
+            game.asteroids = ::std::mem::replace(&mut game.asteroids, vec![])
+                .into_iter()
+                .filter_map(|asteroid| {
+                    let mut asteroid_alive = true;
 
-        self.asteroids = self.asteroids
-            .into_iter()
-            .filter_map(|asteroid| {
-                let mut asteroid_alive = true;
-
-                for bullet in &mut transition_bullets {
-                    //? Notice that we refer to the bullet as `bullet.value`
-                    //? because it has been wrapped in `MaybeAlive`.
-                    if asteroid.rect().overlaps(bullet.value.rect()) {
-                        asteroid_alive = false;
-                        //? We go through every bullet and "kill" those that collide
-                        //? with the asteroid. We do this for every asteroid.
-                        bullet.alive = false;
+                    for bullet in &mut transition_bullets {
+                        //? Notice that we refer to the bullet as `bullet.value`
+                        //? because it has been wrapped in `MaybeAlive`.
+                        if asteroid.rect().overlaps(bullet.value.rect()) {
+                            asteroid_alive = false;
+                            //? We go through every bullet and "kill" those that collide
+                            //? with the asteroid. We do this for every asteroid.
+                            bullet.alive = false;
+                        }
                     }
-                }
 
-                // The player's Player is destroyed if it is hit by an asteroid.
-                // In which case, the asteroid is also destroyed.
-                if asteroid.rect().overlaps(self.player.rect) {
-                    asteroid_alive = false;
-                    player_alive = false;
-                }
+                    // The player's Player is destroyed if it is hit by an asteroid.
+                    // In which case, the asteroid is also destroyed.
+                    if asteroid.rect().overlaps(game.player.rect) {
+                        asteroid_alive = false;
+                        player_alive = false;
+                    }
 
-                //? Then, we use the magic of `filter_map` to keep only the asteroids
-                //? that didn't explode.
-                if asteroid_alive {
-                    Some(asteroid)
-                } else {
+                    //? Then, we use the magic of `filter_map` to keep only the asteroids
+                    //? that didn't explode.
+                    if asteroid_alive {
+                        Some(asteroid)
+                    } else {
 
-                    self.explosions.push(self.explosion_factory.at_center(asteroid.rect()
-                                                                              .center()));
-
-
-                    phi.play_sound(&self.explosion_sound);
-                    None
-                }
-            })
-            .collect();
+                        game.explosions.push(game.explosion_factory.at_center(asteroid.rect()
+                                                                                  .center()));
 
 
-        self.bullets = transition_bullets.into_iter().filter_map(MaybeAlive::as_option).collect();
-        if !player_alive {
-            println!("The player's Player has been destroyed.");
+                        phi.play_sound(&game.explosion_sound);
+                        None
+                    }
+                })
+                .collect();
+
+
+            game.bullets =
+                transition_bullets.into_iter().filter_map(MaybeAlive::as_option).collect();
+            if !player_alive {
+                println!("The player's Player has been destroyed.");
+            }
+            if phi.events.now.key_space == Some(true) {
+                game.bullets.append(&mut game.player.spawn_bullets());
+                phi.play_sound(&game.bullet_sound);
+            }
+            if ::rand::random::<usize>() % 100 == 0 {
+                game.asteroids.push(game.asteroid_factory.random(phi));
+            }
+
+            // update the Backgrounds
+            game.bg.back.update(elapsed);
+            game.bg.middle.update(elapsed);
+            game.bg.front.update(elapsed);
+            // ViewAction::Render(self)
+
         }
-        if phi.events.now.key_space == Some(true) {
-            self.bullets.append(&mut self.player.spawn_bullets());
-            phi.play_sound(&self.bullet_sound);
-        }
-        if ::rand::random::<usize>() % 100 == 0 {
-            self.asteroids.push(self.asteroid_factory.random(phi));
-        }
 
-        // update the Backgrounds
-        self.bg.back.update(elapsed);
-        self.bg.middle.update(elapsed);
-        self.bg.front.update(elapsed);
-        // ViewAction::Render(self)
         ViewAction::None
     }
     fn render(&mut self, phi: &mut Phi) -> ViewAction {
