@@ -2,7 +2,7 @@ use phi::{Phi, View, ViewAction};
 use phi::gfx::{CopySprite, Sprite, AnimatedSprite, AnimatedSpriteDescr};
 use phi::data::{Rectangle, MaybeAlive};
 use sdl2::pixels::Color;
-use sdl2::mixer::Music;
+use sdl2::mixer::{Chunk, Music};
 use std::path::Path;
 use views::bullets::*;
 use views::shared::BgSet;
@@ -307,14 +307,17 @@ pub struct GameView {
     asteroid_factory: AsteroidFactory,
     explosions: Vec<Explosion>,
     explosion_factory: ExplosionFactory,
-    music:Music<'static>,
+    music: Music<'static>,
+    bullet_sound: Chunk,
+    explosion_sound: Chunk,
 }
 impl GameView {
     pub fn with_backgrounds(phi: &mut Phi, bg: BgSet) -> GameView {
-let music =
-    Music::from_file(Path::new("assets/mdk_phoenix_orchestral.ogg"))
-    .unwrap();
- music.play(-1).unwrap();
+        let music = Music::from_file(Path::new("assets/mdk_phoenix_orchestral.ogg")).unwrap();
+        music.play(-1).unwrap();
+        let bullet_sound = Chunk::from_file(Path::new("assets/bullet.ogg")).unwrap();
+
+        let explosion_sound = Chunk::from_file(Path::new("assets/explosion.ogg")).unwrap();
         GameView {
             player: Player::new(phi),
             bullets: vec![],
@@ -323,7 +326,9 @@ let music =
             asteroid_factory: Asteroid::factory(phi),
             explosions: vec![],
             explosion_factory: Explosion::factory(phi),
-            music:music
+            music: music,
+            bullet_sound: bullet_sound,
+            explosion_sound: explosion_sound,
         }
     }
 }
