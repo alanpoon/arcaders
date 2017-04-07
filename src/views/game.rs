@@ -1,12 +1,9 @@
 use phi::{Phi, View, ViewAction};
 use phi::gfx::{CopySprite, Sprite, AnimatedSprite, AnimatedSpriteDescr};
 use phi::data::{Rectangle, MaybeAlive};
-use std::path::Path;
-use sdl2::render::{Texture, TextureQuery};
-use sdl2::image::LoadTexture;
-use sdl2::render::Renderer;
 use sdl2::pixels::Color;
-use views::shared::{Background, BgSet};
+use views::bullets::*;
+use views::shared::BgSet;
 
 // Constants
 const PLAYER_SPEED: f64 = 180.0;
@@ -19,9 +16,6 @@ const ASTEROIDS_WIDE: usize = 21;
 const ASTEROIDS_HIGH: usize = 7;
 const ASTEROIDS_TOTAL: usize = ASTEROIDS_WIDE * ASTEROIDS_HIGH - 4;
 const ASTEROID_SIDE: f64 = 96.0;
-const BULLET_SPEED: f64 = 240.0;
-const BULLET_W: f64 = 8.0;
-const BULLET_H: f64 = 4.0;
 const EXPLOSION_PATH: &'static str = "assets/explosion.png";
 const EXPLOSIONS_WIDE: usize = 5;
 const EXPLOSIONS_HIGH: usize = 4;
@@ -163,7 +157,7 @@ struct ExplosionFactory {
 impl ExplosionFactory {
     fn at_center(&self, center: (f64, f64)) -> Explosion {
         // FPS in [10.0, 30.0)
-        let mut sprite = self.sprite.clone();
+        let sprite = self.sprite.clone();
 
         Explosion {
             sprite: sprite,
@@ -176,76 +170,7 @@ impl ExplosionFactory {
         }
     }
 }
-trait Bullet {
-    fn update(self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>>;
-    fn render(&self, phi: &mut Phi);
-    fn rect(&self) -> Rectangle;
-}
 
-struct RectBullet {
-    rect: Rectangle,
-}
-impl Bullet for RectBullet {
-    fn update(mut self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>> {
-        let (w, _) = phi.output_size();
-        self.rect.x += dt * BULLET_SPEED;
-        if self.rect.x > w { None } else { Some(self) }
-    }
-    fn render(&self, phi: &mut Phi) {
-        phi.renderer.set_draw_color(Color::RGB(230, 230, 30));
-        phi.renderer.fill_rect(self.rect.to_sdl().unwrap());
-    }
-    fn rect(&self) -> Rectangle {
-        self.rect
-    }
-}
-
-
-#[derive(Clone, Copy)]
-struct SineBullet {
-    pos_x: f64,
-    origin_y: f64,
-    amplitude: f64,
-    angular_vel: f64,
-    total_time: f64,
-}
-impl Bullet for SineBullet {
-    fn update(mut self: Box<Self>, phi: &mut Phi, dt: f64) -> Option<Box<Bullet>> {
-        //? We store the total time...
-        self.total_time += dt;
-
-        //? And move at the same speed as regular bullets.
-        self.pos_x += BULLET_SPEED * dt;
-
-        // If the bullet has left the screen, then delete it.
-        let (w, _) = phi.output_size();
-
-        if self.rect().x > w { None } else { Some(self) }
-    }
-
-    fn render(&self, phi: &mut Phi) {
-        // We will render this kind of bullet in yellow.
-        phi.renderer.set_draw_color(Color::RGB(230, 230, 30));
-        phi.renderer.fill_rect(self.rect().to_sdl().unwrap());
-    }
-
-    fn rect(&self) -> Rectangle {
-        //? Just the general form of the sine function, minus the initial time.
-        let dy = self.amplitude * f64::sin(self.angular_vel * self.total_time);
-        Rectangle {
-            x: self.pos_x,
-            y: self.origin_y + dy,
-            w: BULLET_W,
-            h: BULLET_H,
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-enum CannonType {
-    RectBullet,
-    SineBullet { amplitude: f64, angular_vel: f64 },
-}
 #[derive(Clone, Copy)]
 enum PlayerFrame {
     UpNorm = 0,
@@ -308,44 +233,7 @@ impl Player {
         let cannons_x = self.rect.x + 30.0;
         let cannon1_y = self.rect.y + 6.0;
         let cannon2_y = self.rect.y + PLAYER_H - 10.0;
-        match self.cannon {
-            CannonType::RectBullet=>
-                // One bullet at the tip of every cannon
-        vec![Box::new(RectBullet {
-                 rect: Rectangle {
-                     x: cannons_x,
-                     y: cannon1_y,
-                     w: BULLET_W,
-                     h: BULLET_H,
-                 },
-             }),
-             Box::new(RectBullet {
-                 rect: Rectangle {
-                     x: cannons_x,
-                     y: cannon2_y,
-                     w: BULLET_W,
-                     h: BULLET_H,
-                 },
-             })],
-
-            CannonType::SineBullet { amplitude, angular_vel } =>
-                vec![
-                    Box::new(SineBullet {
-                        pos_x: cannons_x,
-                        origin_y: cannon1_y,
-                        amplitude: amplitude,
-                        angular_vel: angular_vel,
-                        total_time: 0.0,
-                    }),
-                    Box::new(SineBullet {
-                        pos_x: cannons_x,
-                        origin_y: cannon2_y,
-                        amplitude: amplitude,
-                        angular_vel: angular_vel,
-                        total_time: 0.0,
-                    }),
-                ]
-        }
+        spawn_bullets(self.cannon, cannons_x, cannon1_y, cannon2_y)
 
     }
     pub fn update(&mut self, phi: &mut Phi, elapsed: f64) {
