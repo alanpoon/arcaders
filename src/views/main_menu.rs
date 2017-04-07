@@ -56,7 +56,14 @@ impl MainMenuView {
     }
 }
 impl View for MainMenuView {
-    fn render(&mut self, phi: &mut Phi, elapsed: f64) -> ViewAction {
+    fn update(mut self: Box<Self>, context: &mut Phi, elapsed: f64) -> ViewAction {
+        // update the Backgrounds
+        self.bg.back.update(elapsed);
+        self.bg.middle.update(elapsed);
+        self.bg.front.update(elapsed);
+        ViewAction::None
+    }
+    fn render(&mut self, phi: &mut Phi) -> ViewAction {
         if phi.events.now.quit || phi.events.now.key_escape == Some(true) {
             return ViewAction::Quit;
         }
@@ -81,10 +88,12 @@ impl View for MainMenuView {
         // Clear the screen
         phi.renderer.set_draw_color(Color::RGB(0, 0, 0));
         phi.renderer.clear();
+
+
         // Render the background
-        self.bg.back.render(&mut phi.renderer, elapsed);
-        self.bg.middle.render(&mut phi.renderer, elapsed);
-        self.bg.front.render(&mut phi.renderer, elapsed);
+        self.bg.back.render(&mut phi.renderer);
+        self.bg.middle.render(&mut phi.renderer);
+        self.bg.front.render(&mut phi.renderer);
         // Definitions for the menu layout
         let (win_w, win_h) = phi.output_size();
         let label_h = 50.0;

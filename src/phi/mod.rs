@@ -99,7 +99,8 @@ pub trait View {
     /// the rendering of the current view.
     ///
     /// `elapsed` is expressed in seconds.
-    fn render(&mut self, context: &mut Phi, elapsed: f64) -> ViewAction;
+    fn render(&mut self, context: &mut Phi) -> ViewAction;
+    fn update(mut self: Box<Self>, context: &mut Phi, elapsed: f64) -> ViewAction;
 }
 
 //2nd argument takes closure, Box<View> to relieve the defaultview
@@ -156,7 +157,7 @@ pub fn spawn<F>(title: &str, init: F)
         }
 
         context.events.pump(&mut context.renderer);
-        match current_view.render(&mut context, elapsed) {
+        match current_view.render(&mut context) {
             ViewAction::None => context.renderer.present(),
             ViewAction::Quit => break,
             ViewAction::ChangeView(new_view) => current_view = new_view,

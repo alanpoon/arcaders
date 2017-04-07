@@ -10,14 +10,19 @@ pub struct Background {
     pub sprite: Sprite,
 }
 impl Background {
-    pub fn render(&mut self, renderer: &mut Renderer, elapsed: f64) {
+    pub fn update(&mut self, elapsed: f64) {
         // We define a logical position as depending solely on the time and the
         // dimensions of the image, not on the screen's size.
         let size = self.sprite.size();
         self.pos += self.vel * elapsed;
         if self.pos > size.0 {
-            self.pos -= size.0
+            self.pos -= size.0;
         }
+    }
+    pub fn render(&self, renderer: &mut Renderer) {
+        // We define a logical position as depending solely on the time and the
+        // dimensions of the image, not on the screen's size.
+        let size = self.sprite.size();
         // We determine the scale ratio of the window to the sprite.
         let (win_w, win_h) = renderer.output_size().unwrap();
         let scale = win_h as f64 / size.1;

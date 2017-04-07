@@ -333,42 +333,29 @@ impl GameView {
     }
 }
 impl View for GameView {
-    fn render(&mut self, phi: &mut Phi, elapsed: f64) -> ViewAction {
-        if phi.events.now.key_escape == Some(true) {
-            let bg = self.bg.clone();
-            return ViewAction::ChangeView(Box::new(::views::main_menu::MainMenuView::with_backgrounds(phi,bg)));
-        }
-
-
-        // Clear the screen
-        phi.renderer.set_draw_color(Color::RGB(0, 0, 0));
-        phi.renderer.clear();
-        // Render the Backgrounds
-        self.bg.back.render(&mut phi.renderer, elapsed);
-        self.bg.middle.render(&mut phi.renderer, elapsed);
-
+    fn update(mut self: Box<Self>, phi: &mut Phi, elapsed: f64) -> ViewAction {
 
         // Update the player
         self.player.update(phi, elapsed);
         let mut player_alive = true;
         // Update the Bullet pos
-        self.bullets = ::std::mem::replace(&mut self.bullets, vec![])
+        self.bullets = self.bullets
             .into_iter()
             .filter_map(|bullet| bullet.update(phi, elapsed))
             .collect();
         // Update the Asteroids
 
-        self.asteroids = ::std::mem::replace(&mut self.asteroids, vec![])
+        self.asteroids = self.asteroids
             .into_iter()
             .filter_map(|asteroid| asteroid.update(elapsed))
             .collect();
         // Update the explosions
-        self.explosions = ::std::mem::replace(&mut self.explosions, vec![])
+        self.explosions = self.explosions
             .into_iter()
             .filter_map(|explosion| explosion.update(elapsed))
             .collect();
         //can keep track of which got into a collision
-        let mut transition_bullets: Vec<_> = ::std::mem::replace(&mut self.bullets, vec![])
+        let mut transition_bullets = self.bullets
             .into_iter()
             .map(|bullet| {
                      MaybeAlive {
@@ -376,9 +363,9 @@ impl View for GameView {
                          value: bullet,
                      }
                  })
-            .collect();
+            .collect::<Vec<_>>();
 
-        self.asteroids = ::std::mem::replace(&mut self.asteroids, vec![])
+        self.asteroids = self.asteroids
             .into_iter()
             .filter_map(|asteroid| {
                 let mut asteroid_alive = true;
@@ -417,6 +404,7 @@ impl View for GameView {
             })
             .collect();
 
+
         self.bullets = transition_bullets.into_iter().filter_map(MaybeAlive::as_option).collect();
         if !player_alive {
             println!("The player's Player has been destroyed.");
@@ -428,7 +416,23 @@ impl View for GameView {
         if ::rand::random::<usize>() % 100 == 0 {
             self.asteroids.push(self.asteroid_factory.random(phi));
         }
-        println!("{}", self.asteroids.len());
+
+        // update the Backgrounds
+        self.bg.back.update(elapsed);
+        self.bg.middle.update(elapsed);
+        self.bg.front.update(elapsed);
+        // ViewAction::Render(self)
+        ViewAction::None
+    }
+    fn render(&mut self, phi: &mut Phi) -> ViewAction {
+        if phi.events.now.key_escape == Some(true) {
+            let bg = self.bg.clone();
+            return ViewAction::ChangeView(Box::new(::views::main_menu::MainMenuView::with_backgrounds(phi,bg)));
+        }
+
+        // Clear the screen
+        phi.renderer.set_draw_color(Color::RGB(0, 0, 0));
+        phi.renderer.clear();
 
         //Render the player
         self.player.render(phi);
@@ -446,8 +450,9 @@ impl View for GameView {
             explosion.render(phi);
         }
         // Render the foreground
-        self.bg.front.render(&mut phi.renderer, elapsed);
-
+        self.bg.front.render(&mut phi.renderer);
+        self.bg.back.render(&mut phi.renderer);
+        self.bg.middle.render(&mut phi.renderer);
         ViewAction::None
     }
 }
